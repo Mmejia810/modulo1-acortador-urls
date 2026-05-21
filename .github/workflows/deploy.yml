@@ -26,12 +26,10 @@ jobs:
           python-version: '3.12'
 
       - name: Instalar dependencias de prueba
-        run: |
-          pip install pytest boto3 moto
+        run: pip install pytest boto3 moto
 
       - name: Correr pruebas unitarias
-        run: |
-          pytest lambda/test_handler.py -v
+        run: pytest lambda/test_handler.py -v
 
   deploy:
     name: CD - Deploy Terraform
@@ -53,10 +51,39 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+
       - name: Terraform Init
         run: |
           export CHECKPOINT_DISABLE=1
           terraform init -upgrade
+
+      - name: Terraform Import DynamoDB
+        run: terraform import aws_dynamodb_table.urls parcial3 || true
+
+      - name: Terraform Import IAM Role
+        run: terraform import aws_iam_role.lambda_role modulo1-acortador-role || true
+
+      - name: Terraform Import IAM Policy
+        run: terraform import aws_iam_role_policy.lambda_dynamodb_policy modulo1-acortador-role:modulo1-acortador-dynamo-policy || true
+
+      - name: Terraform Import Lambda
+        run: terraform import aws_lambda_function.acortador modulo1-acortador || true
+
+      - name: Terraform Import API Gateway
+        run: terraform import aws_apigatewayv2_api.http_api pyxidvyl0f || true
+
+      - name: Terraform Import API Stage
+        run: |
+          terraform import aws_apigatewayv2_stage.default 'pyxidvyl0f/$default' || true
+
+      - name: Terraform Import API Integration
+        run: terraform import aws_apigatewayv2_integration.lambda_integration pyxidvyl0f/tojwrno || true
+
+      - name: Terraform Import API Route
+        run: terraform import aws_apigatewayv2_route.post_shorten pyxidvyl0f/38h0aca || true
+
+      - name: Terraform Import Lambda Permission
+        run: terraform import aws_lambda_permission.api_gateway modulo1-acortador/AllowAPIGatewayInvoke || true
 
       - name: Terraform Plan
         run: terraform plan
